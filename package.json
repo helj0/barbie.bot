@@ -1,0 +1,21 @@
+{
+  "name": "scrobble-bot",
+  "version": "0.1.0",
+  "description": "Discord bot that tracks server members' Last.fm/Spotify scrobbles and compares listening stats with rich image cards.",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy-commands": "node src/deploy-commands.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.53",
+    "better-sqlite3": "^13.0.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  }
+}
