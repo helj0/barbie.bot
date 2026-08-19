@@ -15,6 +15,8 @@ export const theme = {
   rankSilverRgb: '201,204,214',
   rankBronze: '#d68b52',
   rankBronzeRgb: '214,139,82',
+  rankPlatinum: '#c9f4ff',
+  rankPlatinumRgb: '201,244,255',
 };
 
 export function rankColor(rank) {

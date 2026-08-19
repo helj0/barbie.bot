@@ -16,6 +16,7 @@ export const MEDALS = {
       { tier: 'bronze', threshold: 500, points: 10 },
       { tier: 'silver', threshold: 2500, points: 25 },
       { tier: 'gold', threshold: 10000, points: 50 },
+      { tier: 'platinum', threshold: 25000, points: 100 },
     ],
   },
   devotee: {
@@ -26,6 +27,7 @@ export const MEDALS = {
       { tier: 'bronze', threshold: 100, points: 10 },
       { tier: 'silver', threshold: 250, points: 25 },
       { tier: 'gold', threshold: 500, points: 50 },
+      { tier: 'platinum', threshold: 1000, points: 100 },
     ],
   },
   onrepeat: {
@@ -36,6 +38,7 @@ export const MEDALS = {
       { tier: 'bronze', threshold: 50, points: 10 },
       { tier: 'silver', threshold: 100, points: 25 },
       { tier: 'gold', threshold: 200, points: 50 },
+      { tier: 'platinum', threshold: 400, points: 100 },
     ],
   },
   cratedigger: {
@@ -46,6 +49,7 @@ export const MEDALS = {
       { tier: 'bronze', threshold: 30, points: 10 },
       { tier: 'silver', threshold: 60, points: 25 },
       { tier: 'gold', threshold: 100, points: 50 },
+      { tier: 'platinum', threshold: 150, points: 100 },
     ],
   },
   genrehopper: {
@@ -56,6 +60,7 @@ export const MEDALS = {
       { tier: 'bronze', threshold: 5, points: 10 },
       { tier: 'silver', threshold: 8, points: 25 },
       { tier: 'gold', threshold: 12, points: 50 },
+      { tier: 'platinum', threshold: 16, points: 100 },
     ],
   },
   underground: {

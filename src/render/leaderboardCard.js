@@ -10,6 +10,7 @@ const ROW_GAP = 8;
 const HEADER_HEIGHT = 176;
 const PANEL_PADDING = 20;
 const OUTER_MARGIN = 30;
+const COLUMN_GAP = 20;
 
 /**
  * @param {object} opts
@@ -21,7 +22,15 @@ const OUTER_MARGIN = 30;
  */
 export async function renderLeaderboardCard(opts) {
   const rows = opts.entries.slice(0, 10);
-  const panelH = Math.max(rows.length, 1) * ROW_HEIGHT + Math.max(rows.length - 1, 0) * ROW_GAP + PANEL_PADDING * 2;
+  // Ranked down the left column first, then continuing down the right -
+  // not interleaved - so reading order still matches rank order.
+  const splitAt = Math.ceil(rows.length / 2);
+  const columns = [
+    { entries: rows.slice(0, splitAt), rankOffset: 0 },
+    { entries: rows.slice(splitAt), rankOffset: splitAt },
+  ];
+  const rowCount = Math.max(columns[0].entries.length, 1);
+  const panelH = rowCount * ROW_HEIGHT + Math.max(rowCount - 1, 0) * ROW_GAP + PANEL_PADDING * 2;
   const height = OUTER_MARGIN + HEADER_HEIGHT + panelH + OUTER_MARGIN;
 
   const canvas = createCanvas(WIDTH, height);
@@ -67,54 +76,60 @@ export async function renderLeaderboardCard(opts) {
   const panelW = WIDTH - OUTER_MARGIN * 2;
   drawGlassPanel(ctx, panelX, panelY, panelW, panelH, 24);
 
-  rows.forEach((entry, i) => {
-    const rowX = panelX + PANEL_PADDING;
-    const rowY = panelY + PANEL_PADDING + i * (ROW_HEIGHT + ROW_GAP);
-    const rowW = panelW - PANEL_PADDING * 2;
-    const rowCenterY = rowY + ROW_HEIGHT / 2;
+  const colWidth = (panelW - PANEL_PADDING * 2 - COLUMN_GAP) / 2;
 
-    drawGlassRow(ctx, rowX, rowY, rowW, ROW_HEIGHT, 14, rankAccentRgb(i + 1));
+  columns.forEach((column, colIndex) => {
+    const rowX = panelX + PANEL_PADDING + colIndex * (colWidth + COLUMN_GAP);
 
-    ctx.fillStyle = rankColor(i + 1);
-    ctx.font = fontBold(15);
-    ctx.textAlign = 'left';
-    ctx.fillText(`#${i + 1}`, rowX + 16, rowCenterY + 5);
+    column.entries.forEach((entry, i) => {
+      const rank = column.rankOffset + i + 1;
+      const rowY = panelY + PANEL_PADDING + i * (ROW_HEIGHT + ROW_GAP);
+      const rowCenterY = rowY + ROW_HEIGHT / 2;
 
-    const avatarSize = 36;
-    const avatarX = rowX + 56;
-    const avatarCy = rowY + ROW_HEIGHT / 2;
-    if (avatars[i]) {
-      ctx.save();
+      drawGlassRow(ctx, rowX, rowY, colWidth, ROW_HEIGHT, 14, rankAccentRgb(rank));
+
+      ctx.fillStyle = rankColor(rank);
+      ctx.font = fontBold(14);
+      ctx.textAlign = 'left';
+      ctx.fillText(`#${rank}`, rowX + 14, rowCenterY + 5);
+
+      const avatarSize = 34;
+      const avatarX = rowX + 48;
+      const avatarCy = rowY + ROW_HEIGHT / 2;
+      const avatar = avatars[column.rankOffset + i];
+      if (avatar) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarCy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(avatar, avatarX, avatarCy - avatarSize / 2, avatarSize, avatarSize);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize / 2, avatarCy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(avatarX + avatarSize / 2, avatarCy, avatarSize / 2, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(avatars[i], avatarX, avatarCy - avatarSize / 2, avatarSize, avatarSize);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      ctx.beginPath();
-      ctx.arc(avatarX + avatarSize / 2, avatarCy, avatarSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarCy, avatarSize / 2, 0, Math.PI * 2);
-    ctx.stroke();
+      ctx.stroke();
 
-    const nameX = avatarX + avatarSize + 18;
-    ctx.fillStyle = theme.text;
-    ctx.font = fontBold(17);
-    ctx.fillText(fitText(ctx, entry.displayName, rowX + rowW - nameX - 110), nameX, rowCenterY + 6);
+      const nameX = avatarX + avatarSize + 16;
+      ctx.fillStyle = theme.text;
+      ctx.font = fontBold(15);
+      ctx.fillText(fitText(ctx, entry.displayName, rowX + colWidth - nameX - 76), nameX, rowCenterY + 5);
 
-    ctx.textAlign = 'right';
-    ctx.fillStyle = theme.accent2;
-    ctx.font = fontBold(19);
-    ctx.fillText(String(entry.playcount), rowX + rowW - 16, rowCenterY - 1);
-    ctx.fillStyle = theme.textFaint;
-    ctx.font = fontRegular(11);
-    ctx.fillText(opts.unitLabel ?? 'plays', rowX + rowW - 16, rowCenterY + 15);
-    ctx.textAlign = 'left';
+      ctx.textAlign = 'right';
+      ctx.fillStyle = theme.accent2;
+      ctx.font = fontBold(16);
+      ctx.fillText(String(entry.playcount), rowX + colWidth - 12, rowCenterY - 2);
+      ctx.fillStyle = theme.textFaint;
+      ctx.font = fontRegular(10);
+      ctx.fillText(opts.unitLabel ?? 'plays', rowX + colWidth - 12, rowCenterY + 13);
+      ctx.textAlign = 'left';
+    });
   });
 
   return canvas.toBuffer('image/png');

@@ -77,3 +77,21 @@ export function fitText(ctx, text, maxWidth) {
   }
   return truncated + '…';
 }
+
+/** Greedily wraps text into lines no wider than maxWidth (uses ctx's current font). */
+export function wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(candidate).width > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}

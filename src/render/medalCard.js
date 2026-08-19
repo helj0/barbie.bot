@@ -2,7 +2,7 @@ import { createCanvas } from '@napi-rs/canvas';
 import { theme } from './theme.js';
 import { drawAmbientBackground, drawGlassPanel, drawGlassRow, drawPill } from './glass.js';
 import { fontRegular, fontBold } from '../fonts.js';
-import { safeLoadImage, fitText } from '../utils/images.js';
+import { safeLoadImage, fitText, wrapText } from '../utils/images.js';
 import { drawMedalIcon } from './medalIcons.js';
 import { MEDALS } from '../medals/catalog.js';
 
@@ -10,8 +10,9 @@ const TIER_COLORS = {
   bronze: { hex: theme.rankBronze, rgb: theme.rankBronzeRgb },
   silver: { hex: theme.rankSilver, rgb: theme.rankSilverRgb },
   gold: { hex: theme.rankGold, rgb: theme.rankGoldRgb },
+  platinum: { hex: theme.rankPlatinum, rgb: theme.rankPlatinumRgb },
 };
-const TIER_ORDER = { bronze: 1, silver: 2, gold: 3 };
+const TIER_ORDER = { bronze: 1, silver: 2, gold: 3, platinum: 4 };
 
 /** A glowing medallion disc with its icon etched in the center. */
 function drawMedallion(ctx, cx, cy, radius, tier, medalKey) {
@@ -160,11 +161,14 @@ export async function renderMedalAnnouncement(opts) {
 export async function renderBadgeCase(opts) {
   const WIDTH = 900;
   const COLS = 5;
-  const CELL = 140;
+  const CELL_W = 148;
+  const CELL_H = 178;
   const CELL_GAP = 12;
   const HEADER_HEIGHT = 90;
   const PANEL_PADDING = 24;
   const OUTER_MARGIN = 30;
+  const DESC_MAX_LINES = 3;
+  const DESC_LINE_HEIGHT = 13;
 
   const bestTierByKey = new Map();
   for (const m of opts.earnedMedals) {
@@ -176,7 +180,7 @@ export async function renderBadgeCase(opts) {
 
   const cells = Object.keys(MEDALS).map((key) => ({ key, earned: bestTierByKey.get(key) ?? null }));
   const rows = Math.max(1, Math.ceil(cells.length / COLS));
-  const panelH = rows * CELL + (rows - 1) * CELL_GAP + PANEL_PADDING * 2;
+  const panelH = rows * CELL_H + (rows - 1) * CELL_GAP + PANEL_PADDING * 2;
   const height = OUTER_MARGIN + HEADER_HEIGHT + panelH + OUTER_MARGIN;
 
   const canvas = createCanvas(WIDTH, height);
@@ -202,32 +206,54 @@ export async function renderBadgeCase(opts) {
   cells.forEach((cell, i) => {
     const col = i % COLS;
     const row = Math.floor(i / COLS);
-    const cellX = panelX + PANEL_PADDING + col * (CELL + CELL_GAP);
-    const cellY = panelY + PANEL_PADDING + row * (CELL + CELL_GAP);
+    const cellX = panelX + PANEL_PADDING + col * (CELL_W + CELL_GAP);
+    const cellY = panelY + PANEL_PADDING + row * (CELL_H + CELL_GAP);
 
-    drawGlassRow(ctx, cellX, cellY, CELL, CELL, 16, null);
+    drawGlassRow(ctx, cellX, cellY, CELL_W, CELL_H, 16, null);
 
     const def = MEDALS[cell.key];
+    const centerX = cellX + CELL_W / 2;
     if (cell.earned) {
-      drawMedallion(ctx, cellX + CELL / 2, cellY + 44, 28, cell.earned.tier ?? 'bronze', cell.key);
+      drawMedallion(ctx, centerX, cellY + 38, 26, cell.earned.tier ?? 'bronze', cell.key);
     } else {
-      drawLockedMedallion(ctx, cellX + CELL / 2, cellY + 44, 28);
+      drawLockedMedallion(ctx, centerX, cellY + 38, 26);
     }
 
     ctx.textAlign = 'center';
     ctx.fillStyle = cell.earned ? theme.text : theme.textFaint;
     ctx.font = fontBold(13);
-    ctx.fillText(fitText(ctx, def?.name ?? cell.key, CELL - 16), cellX + CELL / 2, cellY + 92);
+    ctx.fillText(fitText(ctx, def?.name ?? cell.key, CELL_W - 16), centerX, cellY + 76);
 
     if (cell.earned?.tier) {
       ctx.fillStyle = TIER_COLORS[cell.earned.tier]?.hex ?? theme.textDim;
       ctx.font = fontRegular(11);
-      ctx.fillText(capitalize(cell.earned.tier), cellX + CELL / 2, cellY + 110);
+      ctx.fillText(capitalize(cell.earned.tier), centerX, cellY + 93);
     } else {
       ctx.fillStyle = theme.textFaint;
       ctx.font = fontRegular(11);
-      ctx.fillText('Locked', cellX + CELL / 2, cellY + 110);
+      ctx.fillText('Locked', centerX, cellY + 93);
     }
+
+    // Description: the earned tier's threshold if held, otherwise the
+    // entry (bronze/only) tier's, so a locked medal still tells you the
+    // first goalpost to aim for.
+    ctx.fillStyle = cell.earned ? theme.textDim : theme.textFaint;
+    ctx.font = fontRegular(10);
+    const referenceTier = cell.earned?.tier ?? def?.tiers[0]?.tier;
+    const tierDef = def?.tiers.find((t) => t.tier === referenceTier) ?? def?.tiers[0];
+    const description = tierDef?.threshold ? def.description(tierDef.threshold) : def?.description();
+    const lines = wrapText(ctx, description ?? '', CELL_W - 20).slice(0, DESC_MAX_LINES);
+    if (lines.length === DESC_MAX_LINES) {
+      let last = lines[DESC_MAX_LINES - 1];
+      while (last.length > 1 && ctx.measureText(last + '…').width > CELL_W - 20) {
+        last = last.slice(0, -1).trimEnd();
+      }
+      lines[DESC_MAX_LINES - 1] = last + '…';
+    }
+    lines.forEach((line, li) => {
+      ctx.fillText(line, centerX, cellY + 110 + li * DESC_LINE_HEIGHT);
+    });
+
     ctx.textAlign = 'left';
   });
 
