@@ -17,8 +17,9 @@ const COLUMN_GAP = 20;
  * @param {string} opts.subjectName - e.g. "Radiohead" or "OK Computer"
  * @param {string} opts.subjectType - "artist" | "album" | "track"
  * @param {string|null} opts.imageUrl - cover art for the subject
- * @param {Array<{displayName: string, avatarUrl?: string, playcount: number}>} opts.entries
- *        Already sorted descending, top 10 max.
+ * @param {Array<{displayName: string, avatarUrl?: string, playcount: number, isYou?: boolean}>} opts.entries
+ *        Already sorted descending, top 10 max. An entry with isYou highlights
+ *        that row and labels it "(you)", regardless of its rank.
  */
 export async function renderLeaderboardCard(opts) {
   const rows = opts.entries.slice(0, 10);
@@ -86,7 +87,7 @@ export async function renderLeaderboardCard(opts) {
       const rowY = panelY + PANEL_PADDING + i * (ROW_HEIGHT + ROW_GAP);
       const rowCenterY = rowY + ROW_HEIGHT / 2;
 
-      drawGlassRow(ctx, rowX, rowY, colWidth, ROW_HEIGHT, 14, rankAccentRgb(rank));
+      drawGlassRow(ctx, rowX, rowY, colWidth, ROW_HEIGHT, 14, entry.isYou ? theme.accent2Rgb : rankAccentRgb(rank));
 
       ctx.fillStyle = rankColor(rank);
       ctx.font = fontBold(14);
@@ -117,9 +118,10 @@ export async function renderLeaderboardCard(opts) {
       ctx.stroke();
 
       const nameX = avatarX + avatarSize + 16;
-      ctx.fillStyle = theme.text;
+      ctx.fillStyle = entry.isYou ? theme.accent2 : theme.text;
       ctx.font = fontBold(15);
-      ctx.fillText(fitText(ctx, entry.displayName, rowX + colWidth - nameX - 76), nameX, rowCenterY + 5);
+      const label = entry.isYou ? `${entry.displayName} (you)` : entry.displayName;
+      ctx.fillText(fitText(ctx, label, rowX + colWidth - nameX - 76), nameX, rowCenterY + 5);
 
       ctx.textAlign = 'right';
       ctx.fillStyle = theme.accent2;

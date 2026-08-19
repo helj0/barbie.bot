@@ -52,6 +52,23 @@ export async function getRecentTracks(username, limit = 1) {
   return Array.isArray(tracks) ? tracks : [tracks];
 }
 
+/**
+ * Resolves a user's current (or most recent) track into a plain
+ * {artist, album, track, isNowPlaying} shape, or null if they have no
+ * scrobbles at all. Used to default /artist, /album, /track to "whatever
+ * I'm playing right now" when no name is given.
+ */
+export async function getCurrentTrackContext(username) {
+  const [recent] = await getRecentTracks(username, 1);
+  if (!recent) return null;
+  return {
+    artist: recent.artist?.['#text'] ?? recent.artist?.name ?? null,
+    album: recent.album?.['#text'] || null,
+    track: recent.name,
+    isNowPlaying: recent['@attr']?.nowplaying === 'true',
+  };
+}
+
 export async function getTopTracks(username, period, limit = 10) {
   const json = await call('user.gettoptracks', { user: username, period, limit });
   const tracks = json.toptracks?.track ?? [];

@@ -2,7 +2,10 @@ import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getUser } from '../db.js';
 import { getRecentTracks, getTrackUserPlaycount, pickImage } from '../lastfm.js';
 import { findCoverArt } from '../spotifyArt.js';
+import { getServerListeners } from '../utils/serverListeners.js';
 import { renderNowPlayingCard } from '../render/nowPlayingCard.js';
+
+const OTHER_LISTENERS_LIMIT = 5;
 
 export const data = new SlashCommandBuilder()
   .setName('nowplaying')
@@ -52,6 +55,23 @@ export async function execute(interaction) {
     // Non-fatal - card just omits the playcount footer.
   }
 
+  let otherListeners;
+  if (interaction.guild) {
+    try {
+      const { entries } = await getServerListeners({
+        guild: interaction.guild,
+        type: 'track',
+        artist: artistName,
+        track: trackName,
+        excludeDiscordId: targetDiscordUser.id,
+        limit: OTHER_LISTENERS_LIMIT,
+      });
+      otherListeners = entries;
+    } catch {
+      // Non-fatal - card just omits the other-listeners section.
+    }
+  }
+
   const buffer = await renderNowPlayingCard({
     displayName: targetDiscordUser.username,
     avatarUrl: targetDiscordUser.displayAvatarURL({ extension: 'png', size: 128 }),
@@ -61,6 +81,7 @@ export async function execute(interaction) {
     imageUrl,
     isNowPlaying,
     userPlaycount,
+    otherListeners,
   });
 
   const attachment = new AttachmentBuilder(buffer, { name: 'nowplaying.png' });

@@ -1,10 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
-import { getLinkedUsersInGuild, cached } from '../db.js';
-import { getArtistUserPlaycount, getAlbumUserPlaycount, getTrackUserPlaycount } from '../lastfm.js';
-import { findCoverArt } from '../spotifyArt.js';
+import { getLinkedUsersInGuild } from '../db.js';
+import { getServerListeners } from '../utils/serverListeners.js';
 import { renderLeaderboardCard } from '../render/leaderboardCard.js';
-
-const CACHE_TTL_MS = 3 * 60 * 1000;
 
 export const data = new SlashCommandBuilder()
   .setName('leaderboard')
@@ -50,44 +47,13 @@ export async function execute(interaction) {
 
   await interaction.deferReply();
 
-  const subjectKey = type === 'artist' ? artist : type === 'album' ? `${artist}—${album}` : `${artist}—${track}`;
-
-  const perUser = await Promise.all(
-    members.map(async (m) => {
-      try {
-        const info = await cached(`leaderboard:${type}:${subjectKey}:${m.lastfm_username}`, CACHE_TTL_MS, () =>
-          fetchPlaycount(type, artist, album, track, m.lastfm_username)
-        );
-        return { discordId: m.discord_id, ...info };
-      } catch {
-        return null;
-      }
-    })
-  );
-
-  const withPlays = perUser.filter((r) => r && r.userPlaycount > 0).sort((a, b) => b.userPlaycount - a.userPlaycount);
-
-  // Resolve Discord display names/avatars for the top entries only.
-  const entries = [];
-  for (const row of withPlays.slice(0, 10)) {
-    let member;
-    try {
-      member = await interaction.guild.members.fetch(row.discordId);
-    } catch {
-      continue; // user left the server
-    }
-    entries.push({
-      displayName: member.displayName,
-      avatarUrl: member.displayAvatarURL({ extension: 'png', size: 64 }),
-      playcount: row.userPlaycount,
-    });
-  }
-
-  const subjectName = type === 'artist' ? artist : type === 'album' ? `${album}` : `${track}`;
-  let imageUrl = withPlays[0]?.image ?? null;
-  if (!imageUrl) {
-    imageUrl = await findCoverArt({ artist, album, track });
-  }
+  const { entries, subjectName, imageUrl } = await getServerListeners({
+    guild: interaction.guild,
+    type,
+    artist,
+    album,
+    track,
+  });
 
   const buffer = await renderLeaderboardCard({
     subjectName,
@@ -97,10 +63,4 @@ export async function execute(interaction) {
   });
   const attachment = new AttachmentBuilder(buffer, { name: 'leaderboard.png' });
   await interaction.editReply({ files: [attachment] });
-}
-
-async function fetchPlaycount(type, artist, album, track, username) {
-  if (type === 'artist') return getArtistUserPlaycount(artist, username);
-  if (type === 'album') return getAlbumUserPlaycount(artist, album, username);
-  return getTrackUserPlaycount(artist, track, username);
 }

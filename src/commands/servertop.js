@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getLinkedUsersInGuild, cached } from '../db.js';
 import { getTopTracks, getTopAlbums, getTopArtists, pickImage } from '../lastfm.js';
+import { findCoverArt } from '../spotifyArt.js';
 import { PERIOD_CHOICES, periodLabel } from '../utils/period.js';
 import { renderTopListCard } from '../render/topListCard.js';
 
@@ -70,6 +71,20 @@ export async function execute(interaction) {
     await interaction.editReply(`No ${type} data found for this server in that period.`);
     return;
   }
+
+  // Last.fm frequently has no image at all for artists (and sometimes
+  // albums/tracks) - fall back to Spotify search for whatever's missing.
+  // Only runs on the top 10 after merging, not every user's raw results.
+  await Promise.all(
+    ranked.map(async (item) => {
+      if (item.imageUrl) return;
+      item.imageUrl = await findCoverArt(
+        type === 'artists'
+          ? { artist: item.name }
+          : { artist: item.subtext, album: type === 'albums' ? item.name : undefined, track: type === 'tracks' ? item.name : undefined }
+      );
+    })
+  );
 
   const title = `Server Top ${capitalize(type)}`;
   const subtitle = `${periodLabel(period)} · ${members.length} linked member${members.length === 1 ? '' : 's'}`;

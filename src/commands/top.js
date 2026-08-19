@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getUser } from '../db.js';
 import { getTopTracks, getTopAlbums, getTopArtists, pickImage } from '../lastfm.js';
+import { findCoverArt } from '../spotifyArt.js';
 import { PERIOD_CHOICES, periodLabel } from '../utils/period.js';
 import { renderTopListCard } from '../render/topListCard.js';
 
@@ -76,6 +77,19 @@ export async function execute(interaction) {
     await interaction.editReply(`No ${type} found for **${link.lastfm_username}** in that period.`);
     return;
   }
+
+  // Last.fm frequently has no image at all for artists (and sometimes
+  // albums/tracks) - fall back to Spotify search for whatever's missing.
+  await Promise.all(
+    items.map(async (item) => {
+      if (item.imageUrl) return;
+      item.imageUrl = await findCoverArt(
+        type === 'artists'
+          ? { artist: item.name }
+          : { artist: item.subtext, album: type === 'albums' ? item.name : undefined, track: type === 'tracks' ? item.name : undefined }
+      );
+    })
+  );
 
   const title = `${targetDiscordUser.username}'s Top ${capitalize(type)}`;
   const buffer = await renderTopListCard(title, periodLabel(period), items);

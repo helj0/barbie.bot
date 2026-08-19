@@ -19,6 +19,9 @@ see "Why Last.fm and not Spotify" below.
 | `/top type:<tracks\|albums\|artists> [period] [user]` | One listener's top N for a time range |
 | `/servertop type:<tracks\|albums\|artists> [period]` | Aggregated top N across every linked member |
 | `/leaderboard type:<artist\|album\|track> artist:<name> [album] [track]` | Ranks linked members by all-time plays of one specific artist/album/track |
+| `/artist [name]` | Your stats for an artist vs. everyone else linked in the server; defaults to what you're currently/last playing |
+| `/album [album] [artist]` | Same, for an album |
+| `/track [track] [artist]` | Same, for a track |
 | `/genres [period] [user]` | Genre breakdown derived from a listener's top artists' Last.fm tags |
 | `/medals [user]` | Shows a listener's earned medal badge case |
 | `/medals-leaderboard` | Ranks linked members by total medal points |
