@@ -1,12 +1,38 @@
 import 'dotenv/config';
-import './fonts.js'; // registers the bundled Outfit font before anything renders a canvas
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { Client, Collection, GatewayIntentBits, Events } from 'discord.js';
-import { startMedalScheduler } from './medals/scheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  process.exitCode = 1;
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+  process.exitCode = 1;
+});
+
+console.log('[boot] starting up, node', process.version);
+
+console.log('[boot] loading fonts...');
+try {
+  await import('./fonts.js'); // registers the bundled Outfit font before anything renders a canvas
+  console.log('[boot] fonts loaded OK');
+} catch (err) {
+  console.error('[boot] FAILED loading fonts.js:', err);
+  process.exit(1);
+}
+
+console.log('[boot] loading discord.js...');
+const { Client, Collection, GatewayIntentBits, Events } = await import('discord.js');
+console.log('[boot] discord.js loaded OK');
+
+console.log('[boot] loading medal scheduler...');
+const { startMedalScheduler } = await import('./medals/scheduler.js');
+console.log('[boot] medal scheduler module loaded OK');
 
 const client = new Client({
   // Guilds is enough for slash commands + guild.members.fetch(id) lookups
@@ -22,14 +48,21 @@ client.commands = new Collection();
 const commandsDir = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsDir).filter((f) => f.endsWith('.js'));
 
+console.log(`[boot] loading ${commandFiles.length} command files...`);
 for (const file of commandFiles) {
-  const command = await import(pathToFileURL(path.join(commandsDir, file)).href);
-  if (command.data && command.execute) {
-    client.commands.set(command.data.name, command);
-  } else {
-    console.warn(`[commands] ${file} is missing "data" or "execute" - skipping.`);
+  try {
+    const command = await import(pathToFileURL(path.join(commandsDir, file)).href);
+    if (command.data && command.execute) {
+      client.commands.set(command.data.name, command);
+    } else {
+      console.warn(`[commands] ${file} is missing "data" or "execute" - skipping.`);
+    }
+  } catch (err) {
+    console.error(`[boot] FAILED loading command file ${file}:`, err);
+    process.exit(1);
   }
 }
+console.log(`[boot] ${client.commands.size} commands loaded OK`);
 
 client.once(Events.ClientReady, (c) => {
   console.log(`Logged in as ${c.user.tag}. ${client.commands.size} commands loaded.`);
@@ -58,26 +91,16 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
-  process.exitCode = 1;
-});
-
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled rejection:', err);
-  process.exitCode = 1;
-});
-
 if (!process.env.DISCORD_TOKEN) {
   console.error('DISCORD_TOKEN is not set. Copy .env.example to .env and fill it in.');
   process.exit(1);
 }
 
-console.log('Booting scrobble-bot, logging in to Discord...');
+console.log('[boot] logging in to Discord...');
 
 try {
   await client.login(process.env.DISCORD_TOKEN);
 } catch (err) {
-  console.error('Failed to log in to Discord:', err);
+  console.error('[boot] FAILED to log in to Discord:', err);
   process.exit(1);
 }
