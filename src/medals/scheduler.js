@@ -1,5 +1,9 @@
-import { AttachmentBuilder } from 'discord.js';
-import {
+console.log('[boot][scheduler] loading discord.js...');
+const { AttachmentBuilder } = await import('discord.js');
+console.log('[boot][scheduler] discord.js OK');
+
+console.log('[boot][scheduler] loading db.js...');
+const {
   getAllGuildIds,
   getLinkedUsersInGuild,
   getGuildSettings,
@@ -9,10 +13,20 @@ import {
   getMonthlySnapshot,
   getMonthlyChampion,
   upsertMonthlyChampion,
-} from '../db.js';
-import { evaluatePersonalMedals } from './evaluate.js';
-import { MEDALS } from './catalog.js';
-import { renderMedalAnnouncement } from '../render/medalCard.js';
+} = await import('../db.js');
+console.log('[boot][scheduler] db.js OK');
+
+console.log('[boot][scheduler] loading evaluate.js...');
+const { evaluatePersonalMedals } = await import('./evaluate.js');
+console.log('[boot][scheduler] evaluate.js OK');
+
+console.log('[boot][scheduler] loading catalog.js...');
+const { MEDALS } = await import('./catalog.js');
+console.log('[boot][scheduler] catalog.js OK');
+
+console.log('[boot][scheduler] loading medalCard.js...');
+const { renderMedalAnnouncement } = await import('../render/medalCard.js');
+console.log('[boot][scheduler] medalCard.js OK');
 
 const DEFAULT_INTERVAL_MS = 20 * 60 * 1000; // 20 min - matches evaluator's own cache TTL
 
