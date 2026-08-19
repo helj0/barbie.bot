@@ -58,9 +58,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  process.exitCode = 1;
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+  process.exitCode = 1;
+});
+
 if (!process.env.DISCORD_TOKEN) {
   console.error('DISCORD_TOKEN is not set. Copy .env.example to .env and fill it in.');
   process.exit(1);
 }
 
-client.login(process.env.DISCORD_TOKEN);
+console.log('Booting scrobble-bot, logging in to Discord...');
+
+try {
+  await client.login(process.env.DISCORD_TOKEN);
+} catch (err) {
+  console.error('Failed to log in to Discord:', err);
+  process.exit(1);
+}
