@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getUser } from '../db.js';
 import { getRecentTracks, getTrackUserPlaycount, pickImage } from '../lastfm.js';
-import { findSpotifyMatch, spotifyButtonRow } from '../spotifyArt.js';
+import { getStreamingLinks, streamingButtonRow } from '../streamingLinks.js';
 import { getServerListeners } from '../utils/serverListeners.js';
 import { renderNowPlayingCard } from '../render/nowPlayingCard.js';
 
@@ -42,10 +42,10 @@ export async function execute(interaction) {
   const artistName = recent.artist?.['#text'] ?? recent.artist?.name ?? 'Unknown Artist';
   const albumName = recent.album?.['#text'] ?? '';
 
-  // Always look up the Spotify link (Last.fm never gives us one), reusing
-  // its image only if Last.fm didn't already have one.
-  const spotifyMatch = await findSpotifyMatch({ type: 'track', artist: artistName, album: albumName, track: trackName });
-  const imageUrl = pickImage(recent.image) ?? spotifyMatch.imageUrl;
+  // Always look up the streaming links (Last.fm never gives us these),
+  // reusing their image only if Last.fm didn't already have one.
+  const streamingLinks = await getStreamingLinks({ type: 'track', artist: artistName, album: albumName, track: trackName });
+  const imageUrl = pickImage(recent.image) ?? streamingLinks.imageUrl;
 
   let userPlaycount = null;
   try {
@@ -65,6 +65,7 @@ export async function execute(interaction) {
         track: trackName,
         excludeDiscordId: targetDiscordUser.id,
         limit: OTHER_LISTENERS_LIMIT,
+        skipLinks: true,
       });
       otherListeners = entries;
     } catch {
@@ -85,5 +86,5 @@ export async function execute(interaction) {
   });
 
   const attachment = new AttachmentBuilder(buffer, { name: 'nowplaying.png' });
-  await interaction.editReply({ files: [attachment], components: [spotifyButtonRow(spotifyMatch.spotifyUrl)] });
+  await interaction.editReply({ files: [attachment], components: [streamingButtonRow(streamingLinks)] });
 }

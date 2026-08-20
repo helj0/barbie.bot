@@ -5,11 +5,10 @@
 // even after their 2024-2026 endpoint restrictions - only things like
 // recommendations/audio-features are gone, which we don't use here.
 //
-// Also used to build "Open in Spotify" link buttons - that part works even
-// without Spotify credentials configured, falling back to a plain
-// open.spotify.com search URL instead of a direct catalog match.
-
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
+// findSpotifyMatch is also used by streamingLinks.js to build the "Open in
+// Spotify" button - that part works even without Spotify credentials
+// configured, falling back to a plain open.spotify.com search URL instead
+// of a direct catalog match.
 
 let tokenCache = { token: null, expiresAt: 0 };
 
@@ -123,10 +122,4 @@ export async function findSpotifyMatch({ type, artist, album, track }) {
     // Best-effort only - fall through to the search-URL fallback below.
   }
   return { imageUrl: null, spotifyUrl: fallbackUrl };
-}
-
-/** A single-button action row linking out to Spotify, for message components. */
-export function spotifyButtonRow(url) {
-  const button = new ButtonBuilder().setLabel('Open in Spotify').setEmoji('🎧').setStyle(ButtonStyle.Link).setURL(url);
-  return new ActionRowBuilder().addComponents(button);
 }

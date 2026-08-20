@@ -2,7 +2,7 @@ import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getUser } from '../db.js';
 import { getCurrentTrackContext } from '../lastfm.js';
 import { getServerListeners, ensureRequesterIncluded } from '../utils/serverListeners.js';
-import { spotifyButtonRow } from '../spotifyArt.js';
+import { streamingButtonRow } from '../streamingLinks.js';
 import { renderLeaderboardCard } from '../render/leaderboardCard.js';
 
 export const data = new SlashCommandBuilder()
@@ -42,7 +42,7 @@ export async function execute(interaction) {
 
   await interaction.deferReply();
 
-  const { entries, subjectName, imageUrl, spotifyUrl } = await getServerListeners({
+  const { entries, subjectName, imageUrl, spotifyUrl, appleMusicUrl, youtubeUrl } = await getServerListeners({
     guild: interaction.guild,
     type: 'artist',
     artist,
@@ -66,6 +66,6 @@ export async function execute(interaction) {
   await interaction.editReply({
     content: usedNowPlaying ? `Using what you're currently playing: **${artist}**` : undefined,
     files: [attachment],
-    components: [spotifyButtonRow(spotifyUrl)],
+    components: [streamingButtonRow({ spotifyUrl, appleMusicUrl, youtubeUrl })],
   });
 }
