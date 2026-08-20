@@ -1,6 +1,6 @@
 import { getLinkedUsersInGuild, cached } from '../db.js';
 import { getArtistUserPlaycount, getAlbumUserPlaycount, getTrackUserPlaycount } from '../lastfm.js';
-import { findCoverArt } from '../spotifyArt.js';
+import { findSpotifyMatch } from '../spotifyArt.js';
 
 const CACHE_TTL_MS = 3 * 60 * 1000;
 
@@ -18,14 +18,17 @@ const CACHE_TTL_MS = 3 * 60 * 1000;
  * @param {string} [opts.track]
  * @param {string} [opts.excludeDiscordId] - omit this member entirely
  * @param {number} [opts.limit]
- * @returns {Promise<{ entries: Array<{discordId: string, displayName: string, avatarUrl: string, playcount: number}>, subjectName: string, imageUrl: string|null }>}
+ * @returns {Promise<{ entries: Array<{discordId: string, displayName: string, avatarUrl: string, playcount: number}>, subjectName: string, imageUrl: string|null, spotifyUrl: string }>}
  */
 export async function getServerListeners(opts) {
   const { guild, type, artist, album, track, excludeDiscordId, limit = 10 } = opts;
   const subjectName = type === 'artist' ? artist : type === 'album' ? album : track;
 
   const members = getLinkedUsersInGuild(guild.id).filter((m) => m.discord_id !== excludeDiscordId);
-  if (!members.length) return { entries: [], subjectName, imageUrl: null };
+  if (!members.length) {
+    const match = await findSpotifyMatch({ type, artist, album, track });
+    return { entries: [], subjectName, imageUrl: match.imageUrl, spotifyUrl: match.spotifyUrl };
+  }
 
   const subjectKey = type === 'artist' ? artist : type === 'album' ? `${artist}—${album}` : `${artist}—${track}`;
 
@@ -60,12 +63,12 @@ export async function getServerListeners(opts) {
     });
   }
 
-  let imageUrl = withPlays[0]?.image ?? null;
-  if (!imageUrl) {
-    imageUrl = await findCoverArt({ artist, album, track });
-  }
+  // Always look up the Spotify link (Last.fm never gives us one), reusing
+  // its image only if Last.fm didn't already have one.
+  const match = await findSpotifyMatch({ type, artist, album, track });
+  const imageUrl = withPlays[0]?.image ?? match.imageUrl;
 
-  return { entries, subjectName, imageUrl };
+  return { entries, subjectName, imageUrl, spotifyUrl: match.spotifyUrl };
 }
 
 /**

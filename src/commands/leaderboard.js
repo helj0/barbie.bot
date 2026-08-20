@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getLinkedUsersInGuild } from '../db.js';
 import { getServerListeners } from '../utils/serverListeners.js';
+import { spotifyButtonRow } from '../spotifyArt.js';
 import { renderLeaderboardCard } from '../render/leaderboardCard.js';
 
 export const data = new SlashCommandBuilder()
@@ -47,7 +48,7 @@ export async function execute(interaction) {
 
   await interaction.deferReply();
 
-  const { entries, subjectName, imageUrl } = await getServerListeners({
+  const { entries, subjectName, imageUrl, spotifyUrl } = await getServerListeners({
     guild: interaction.guild,
     type,
     artist,
@@ -62,5 +63,5 @@ export async function execute(interaction) {
     entries,
   });
   const attachment = new AttachmentBuilder(buffer, { name: 'leaderboard.png' });
-  await interaction.editReply({ files: [attachment] });
+  await interaction.editReply({ files: [attachment], components: [spotifyButtonRow(spotifyUrl)] });
 }

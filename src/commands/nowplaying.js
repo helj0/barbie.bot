@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getUser } from '../db.js';
 import { getRecentTracks, getTrackUserPlaycount, pickImage } from '../lastfm.js';
-import { findCoverArt } from '../spotifyArt.js';
+import { findSpotifyMatch, spotifyButtonRow } from '../spotifyArt.js';
 import { getServerListeners } from '../utils/serverListeners.js';
 import { renderNowPlayingCard } from '../render/nowPlayingCard.js';
 
@@ -42,10 +42,10 @@ export async function execute(interaction) {
   const artistName = recent.artist?.['#text'] ?? recent.artist?.name ?? 'Unknown Artist';
   const albumName = recent.album?.['#text'] ?? '';
 
-  let imageUrl = pickImage(recent.image);
-  if (!imageUrl) {
-    imageUrl = await findCoverArt({ artist: artistName, album: albumName, track: trackName });
-  }
+  // Always look up the Spotify link (Last.fm never gives us one), reusing
+  // its image only if Last.fm didn't already have one.
+  const spotifyMatch = await findSpotifyMatch({ type: 'track', artist: artistName, album: albumName, track: trackName });
+  const imageUrl = pickImage(recent.image) ?? spotifyMatch.imageUrl;
 
   let userPlaycount = null;
   try {
@@ -85,5 +85,5 @@ export async function execute(interaction) {
   });
 
   const attachment = new AttachmentBuilder(buffer, { name: 'nowplaying.png' });
-  await interaction.editReply({ files: [attachment] });
+  await interaction.editReply({ files: [attachment], components: [spotifyButtonRow(spotifyMatch.spotifyUrl)] });
 }
