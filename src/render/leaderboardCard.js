@@ -1,6 +1,7 @@
 import { createCanvas } from '@napi-rs/canvas';
 import { theme, rankColor, rankAccentRgb } from './theme.js';
 import { drawAmbientBackground, drawGlassPanel, drawGlassRow } from './glass.js';
+import { drawStarRating } from './stars.js';
 import { fontRegular, fontBold } from '../fonts.js';
 import { safeLoadImage, drawCoverArt, fitText } from '../utils/images.js';
 
@@ -20,6 +21,7 @@ const COLUMN_GAP = 20;
  * @param {Array<{displayName: string, avatarUrl?: string, playcount: number, isYou?: boolean}>} opts.entries
  *        Already sorted descending, top 10 max. An entry with isYou highlights
  *        that row and labels it "(you)", regardless of its rank.
+ * @param {{average: number|null, count: number}} [opts.ratingSummary] - server rating, if any
  */
 export async function renderLeaderboardCard(opts) {
   const rows = opts.entries.slice(0, 10);
@@ -71,6 +73,9 @@ export async function renderLeaderboardCard(opts) {
     ctx.font = fontRegular(15);
     ctx.fillText('No linked members have played this yet', textX, artY + 100);
   }
+
+  const ratingSummary = opts.ratingSummary ?? { average: null, count: 0 };
+  drawStarRating(ctx, textX, artY + 128, ratingSummary);
 
   const panelX = OUTER_MARGIN;
   const panelY = OUTER_MARGIN + HEADER_HEIGHT;

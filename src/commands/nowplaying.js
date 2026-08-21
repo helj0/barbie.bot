@@ -3,6 +3,7 @@ import { getUser } from '../db.js';
 import { getRecentTracks, getTrackUserPlaycount, pickImage } from '../lastfm.js';
 import { getStreamingLinks, streamingButtonRow } from '../streamingLinks.js';
 import { getServerListeners } from '../utils/serverListeners.js';
+import { getSummary, buildRateButtonRow } from '../ratings.js';
 import { renderNowPlayingCard } from '../render/nowPlayingCard.js';
 
 const OTHER_LISTENERS_LIMIT = 5;
@@ -56,6 +57,7 @@ export async function execute(interaction) {
   }
 
   let otherListeners;
+  let ratingSummary = { average: null, count: 0 };
   if (interaction.guild) {
     try {
       const { entries } = await getServerListeners({
@@ -71,6 +73,7 @@ export async function execute(interaction) {
     } catch {
       // Non-fatal - card just omits the other-listeners section.
     }
+    ratingSummary = getSummary(interaction.guildId, 'track', artistName, undefined, trackName);
   }
 
   const buffer = await renderNowPlayingCard({
@@ -83,8 +86,13 @@ export async function execute(interaction) {
     isNowPlaying,
     userPlaycount,
     otherListeners,
+    ratingSummary,
   });
 
   const attachment = new AttachmentBuilder(buffer, { name: 'nowplaying.png' });
-  await interaction.editReply({ files: [attachment], components: [streamingButtonRow(streamingLinks)] });
+  const components = [streamingButtonRow(streamingLinks)];
+  if (interaction.guild) {
+    components.push(buildRateButtonRow({ type: 'track', artist: artistName, track: trackName }));
+  }
+  await interaction.editReply({ files: [attachment], components });
 }

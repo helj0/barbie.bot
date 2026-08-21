@@ -72,6 +72,24 @@ db.exec(`
     updated_at  INTEGER NOT NULL,
     PRIMARY KEY (guild_id, year_month)
   );
+
+  -- One rating (0-5) per member per artist/album/track, scoped to the guild
+  -- they rated it in - mirrors the rest of the bot's "compare within your
+  -- server" scope rather than pooling opinions across unrelated servers.
+  -- subject_key is a normalized (trimmed/lowercased) lookup key so ratings
+  -- from /rate and from the card Rate buttons land on the same row
+  -- regardless of exact capitalization; subject_label keeps a display copy.
+  CREATE TABLE IF NOT EXISTS ratings (
+    guild_id      TEXT NOT NULL,
+    discord_id    TEXT NOT NULL,
+    subject_type  TEXT NOT NULL,
+    subject_key   TEXT NOT NULL,
+    subject_label TEXT NOT NULL,
+    rating        INTEGER NOT NULL,
+    rated_at      INTEGER NOT NULL,
+    PRIMARY KEY (guild_id, discord_id, subject_type, subject_key)
+  );
+  CREATE INDEX IF NOT EXISTS idx_ratings_subject ON ratings (guild_id, subject_type, subject_key);
 `);
 
 // ---- account linking -------------------------------------------------
@@ -237,6 +255,36 @@ export function upsertMonthlyChampion(guildId, yearMonth, discordId, playcount) 
        playcount = excluded.playcount,
        updated_at = excluded.updated_at`
   ).run({ guildId, yearMonth, discordId, playcount, now: Date.now() });
+}
+
+// ---- ratings ---------------------------------------------------------
+
+export function upsertRating(guildId, discordId, subjectType, subjectKey, subjectLabel, rating) {
+  db.prepare(
+    `INSERT INTO ratings (guild_id, discord_id, subject_type, subject_key, subject_label, rating, rated_at)
+     VALUES (@guildId, @discordId, @subjectType, @subjectKey, @subjectLabel, @rating, @now)
+     ON CONFLICT(guild_id, discord_id, subject_type, subject_key) DO UPDATE SET
+       subject_label = excluded.subject_label,
+       rating = excluded.rating,
+       rated_at = excluded.rated_at`
+  ).run({ guildId, discordId, subjectType, subjectKey, subjectLabel, rating, now: Date.now() });
+}
+
+export function getRatingSummary(guildId, subjectType, subjectKey) {
+  const row = db
+    .prepare(
+      `SELECT AVG(rating) as average, COUNT(*) as count
+       FROM ratings WHERE guild_id = ? AND subject_type = ? AND subject_key = ?`
+    )
+    .get(guildId, subjectType, subjectKey);
+  return { average: row.count > 0 ? row.average : null, count: row.count };
+}
+
+export function getUserRating(guildId, discordId, subjectType, subjectKey) {
+  const row = db
+    .prepare(`SELECT rating FROM ratings WHERE guild_id = ? AND discord_id = ? AND subject_type = ? AND subject_key = ?`)
+    .get(guildId, discordId, subjectType, subjectKey);
+  return row ? row.rating : null;
 }
 
 export default db;

@@ -34,6 +34,10 @@ console.log('[boot] loading medal scheduler...');
 const { startMedalScheduler } = await import('./medals/scheduler.js');
 console.log('[boot] medal scheduler module loaded OK');
 
+console.log('[boot] loading ratings...');
+const { handleRateButton, handleRateSelect } = await import('./ratings.js');
+console.log('[boot] ratings module loaded OK');
+
 const client = new Client({
   // Guilds is enough for slash commands + guild.members.fetch(id) lookups
   // (a single-member fetch doesn't require the privileged GuildMembers
@@ -70,24 +74,45 @@ client.once(Events.ClientReady, (c) => {
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  if (interaction.isChatInputCommand()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command) {
+      console.warn(`Received unknown command: ${interaction.commandName}`);
+      return;
+    }
 
-  const command = client.commands.get(interaction.commandName);
-  if (!command) {
-    console.warn(`Received unknown command: ${interaction.commandName}`);
+    try {
+      await command.execute(interaction);
+    } catch (err) {
+      console.error(`Error executing /${interaction.commandName}:`, err);
+      const payload = { content: 'Something went wrong running that command.', ephemeral: true };
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply(payload).catch(() => {});
+      } else {
+        await interaction.reply(payload).catch(() => {});
+      }
+    }
     return;
   }
 
-  try {
-    await command.execute(interaction);
-  } catch (err) {
-    console.error(`Error executing /${interaction.commandName}:`, err);
-    const payload = { content: 'Something went wrong running that command.', ephemeral: true };
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(payload).catch(() => {});
-    } else {
-      await interaction.reply(payload).catch(() => {});
+  if (interaction.isButton() && interaction.customId.startsWith('rate:')) {
+    try {
+      await handleRateButton(interaction);
+    } catch (err) {
+      console.error('Error handling rate button:', err);
+      await interaction.reply({ content: 'Something went wrong opening the rating picker.', ephemeral: true }).catch(() => {});
     }
+    return;
+  }
+
+  if (interaction.isStringSelectMenu() && interaction.customId.startsWith('rateselect:')) {
+    try {
+      await handleRateSelect(interaction);
+    } catch (err) {
+      console.error('Error handling rate select:', err);
+      await interaction.reply({ content: 'Something went wrong recording that rating.', ephemeral: true }).catch(() => {});
+    }
+    return;
   }
 });
 

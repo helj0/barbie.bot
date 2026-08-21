@@ -1,11 +1,12 @@
 import { createCanvas } from '@napi-rs/canvas';
 import { theme } from './theme.js';
 import { drawAmbientBackground, drawGlassPanel, drawGlassRow, drawPill } from './glass.js';
+import { drawStarRating } from './stars.js';
 import { fontRegular, fontBold } from '../fonts.js';
 import { safeLoadImage, drawCoverArt, fitText } from '../utils/images.js';
 
 const WIDTH = 900;
-const MAIN_HEIGHT = 320;
+const MAIN_HEIGHT = 350;
 const MARGIN = 24;
 
 const OTHER_SECTION_GAP = 18;
@@ -28,6 +29,7 @@ const OTHER_PANEL_PADDING = 16;
  *        Other linked server members who've played this track, ranked. Pass an array
  *        (possibly empty) to render the section at all; omit to skip it entirely
  *        (e.g. when not run inside a guild).
+ * @param {{average: number|null, count: number}} [opts.ratingSummary] - server rating, if any
  */
 export async function renderNowPlayingCard(opts) {
   const showOtherSection = Array.isArray(opts.otherListeners);
@@ -87,6 +89,9 @@ export async function renderNowPlayingCard(opts) {
     ctx.font = fontRegular(20);
     ctx.fillText(fitText(ctx, opts.albumName, textMaxWidth), textX, artY + 144);
   }
+
+  const ratingSummary = opts.ratingSummary ?? { average: null, count: 0 };
+  drawStarRating(ctx, textX, artY + 174, ratingSummary);
 
   // Footer: avatar + display name (left), playcount pill (right)
   const footerY = artY + artSize - 30;

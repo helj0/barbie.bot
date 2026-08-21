@@ -3,6 +3,7 @@ import { getUser } from '../db.js';
 import { getCurrentTrackContext } from '../lastfm.js';
 import { getServerListeners, ensureRequesterIncluded } from '../utils/serverListeners.js';
 import { streamingButtonRow } from '../streamingLinks.js';
+import { buildRateButtonRow } from '../ratings.js';
 import { renderLeaderboardCard } from '../render/leaderboardCard.js';
 
 export const data = new SlashCommandBuilder()
@@ -57,7 +58,7 @@ export async function execute(interaction) {
 
   await interaction.deferReply();
 
-  const { entries, subjectName, imageUrl, spotifyUrl, appleMusicUrl, youtubeUrl } = await getServerListeners({
+  const { entries, subjectName, imageUrl, ratingSummary, spotifyUrl, appleMusicUrl, youtubeUrl } = await getServerListeners({
     guild: interaction.guild,
     type: 'album',
     artist,
@@ -78,11 +79,15 @@ export async function execute(interaction) {
     subjectType: 'album',
     imageUrl,
     entries: withYou,
+    ratingSummary,
   });
   const attachment = new AttachmentBuilder(buffer, { name: 'album.png' });
   await interaction.editReply({
     content: usedNowPlaying ? `Using what you're currently playing: **${album}** by **${artist}**` : undefined,
     files: [attachment],
-    components: [streamingButtonRow({ spotifyUrl, appleMusicUrl, youtubeUrl })],
+    components: [
+      streamingButtonRow({ spotifyUrl, appleMusicUrl, youtubeUrl }),
+      buildRateButtonRow({ type: 'album', artist, album }),
+    ],
   });
 }

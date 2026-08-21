@@ -1,6 +1,7 @@
 import { getLinkedUsersInGuild, cached } from '../db.js';
 import { getArtistUserPlaycount, getAlbumUserPlaycount, getTrackUserPlaycount } from '../lastfm.js';
 import { getStreamingLinks } from '../streamingLinks.js';
+import { getSummary } from '../ratings.js';
 
 const CACHE_TTL_MS = 3 * 60 * 1000;
 
@@ -21,17 +22,19 @@ const CACHE_TTL_MS = 3 * 60 * 1000;
  * @param {boolean} [opts.skipLinks] - skip the streaming-links lookup entirely (for callers
  *        like /nowplaying's other-listeners section that already resolved it elsewhere for
  *        the same subject and would otherwise trigger a redundant external lookup)
- * @returns {Promise<{ entries: Array<{discordId: string, displayName: string, avatarUrl: string, playcount: number}>, subjectName: string, imageUrl: string|null, spotifyUrl?: string, appleMusicUrl?: string, youtubeUrl?: string }>}
+ * @returns {Promise<{ entries: Array<{discordId: string, displayName: string, avatarUrl: string, playcount: number}>, subjectName: string, imageUrl: string|null, ratingSummary: {average: number|null, count: number}, spotifyUrl?: string, appleMusicUrl?: string, youtubeUrl?: string }>}
  */
 export async function getServerListeners(opts) {
   const { guild, type, artist, album, track, excludeDiscordId, limit = 10, skipLinks = false } = opts;
   const subjectName = type === 'artist' ? artist : type === 'album' ? album : track;
 
+  const ratingSummary = getSummary(guild.id, type, artist, album, track);
+
   const members = getLinkedUsersInGuild(guild.id).filter((m) => m.discord_id !== excludeDiscordId);
   if (!members.length) {
-    if (skipLinks) return { entries: [], subjectName, imageUrl: null };
+    if (skipLinks) return { entries: [], subjectName, imageUrl: null, ratingSummary };
     const links = await getStreamingLinks({ type, artist, album, track });
-    return { entries: [], subjectName, ...links };
+    return { entries: [], subjectName, ratingSummary, ...links };
   }
 
   const subjectKey = type === 'artist' ? artist : type === 'album' ? `${artist}—${album}` : `${artist}—${track}`;
@@ -68,7 +71,7 @@ export async function getServerListeners(opts) {
   }
 
   if (skipLinks) {
-    return { entries, subjectName, imageUrl: withPlays[0]?.image ?? null };
+    return { entries, subjectName, imageUrl: withPlays[0]?.image ?? null, ratingSummary };
   }
 
   // Always look up the streaming links (Last.fm never gives us these),
@@ -76,7 +79,7 @@ export async function getServerListeners(opts) {
   const links = await getStreamingLinks({ type, artist, album, track });
   const imageUrl = withPlays[0]?.image ?? links.imageUrl;
 
-  return { entries, subjectName, ...links, imageUrl };
+  return { entries, subjectName, ratingSummary, ...links, imageUrl };
 }
 
 /**

@@ -22,6 +22,7 @@ see "Why Last.fm and not Spotify" below.
 | `/artist [name]` | Your stats for an artist vs. everyone else linked in the server; defaults to what you're currently/last playing |
 | `/album [album] [artist]` | Same, for an album |
 | `/track [track] [artist]` | Same, for a track |
+| `/rate type:<artist\|album\|track> rating:<0-5> artist:<name> [album] [track]` | Rate something 0-5 stars; also available as a "Rate" button under the cards above |
 | `/genres [period] [user]` | Genre breakdown derived from a listener's top artists' Last.fm tags |
 | `/medals [user]` | Shows a listener's earned medal badge case |
 | `/medals-leaderboard` | Ranks linked members by total medal points |

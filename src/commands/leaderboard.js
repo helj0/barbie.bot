@@ -2,6 +2,7 @@ import { SlashCommandBuilder, AttachmentBuilder } from 'discord.js';
 import { getLinkedUsersInGuild } from '../db.js';
 import { getServerListeners } from '../utils/serverListeners.js';
 import { streamingButtonRow } from '../streamingLinks.js';
+import { buildRateButtonRow } from '../ratings.js';
 import { renderLeaderboardCard } from '../render/leaderboardCard.js';
 
 export const data = new SlashCommandBuilder()
@@ -48,7 +49,7 @@ export async function execute(interaction) {
 
   await interaction.deferReply();
 
-  const { entries, subjectName, imageUrl, spotifyUrl, appleMusicUrl, youtubeUrl } = await getServerListeners({
+  const { entries, subjectName, imageUrl, ratingSummary, spotifyUrl, appleMusicUrl, youtubeUrl } = await getServerListeners({
     guild: interaction.guild,
     type,
     artist,
@@ -61,10 +62,11 @@ export async function execute(interaction) {
     subjectType: type,
     imageUrl,
     entries,
+    ratingSummary,
   });
   const attachment = new AttachmentBuilder(buffer, { name: 'leaderboard.png' });
   await interaction.editReply({
     files: [attachment],
-    components: [streamingButtonRow({ spotifyUrl, appleMusicUrl, youtubeUrl })],
+    components: [streamingButtonRow({ spotifyUrl, appleMusicUrl, youtubeUrl }), buildRateButtonRow({ type, artist, album, track })],
   });
 }
