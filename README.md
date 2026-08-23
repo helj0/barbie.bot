@@ -3,6 +3,8 @@
 A Discord bot that compares server members' Last.fm listening stats with
 rendered, album-art-rich image cards.
 
+[Privacy Policy](./PRIVACY.md)
+
 Data source: **Last.fm's public read-only API**. Members link a Last.fm
 username (no OAuth/password needed) — the bot only reads public scrobble
 history, so it works immediately even for years of existing history, and
