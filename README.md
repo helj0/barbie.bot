@@ -1,4 +1,4 @@
-# Scrobble Bot
+# she.listens
 
 A Discord bot that compares server members' Last.fm listening stats with
 rendered, album-art-rich image cards.
