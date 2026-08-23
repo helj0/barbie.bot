@@ -1,8 +1,8 @@
-# Privacy Policy — barbie.bot
+# Privacy Policy — she.listens
 
 Last updated: 2026-08-23
 
-barbie.bot ("the bot") is a Discord bot that compares server members'
+she.listens ("the bot") is a Discord bot that compares server members'
 Last.fm listening stats. This page explains what it stores, why, and how
 to get it removed.
 
@@ -80,7 +80,7 @@ later deletion.
 ## Contact
 
 Questions, concerns, or data removal requests:
-[github.com/helj0/barbie.bot](https://github.com/helj0/barbie.bot) — open
+[github.com/helj0/she.listens](https://github.com/helj0/she.listens) — open
 an issue.
 
 ## Changes to this policy

@@ -1,13 +1,13 @@
-# Terms of Service — barbie.bot
+# Terms of Service — she.listens
 
 Last updated: 2026-08-23
 
-By inviting barbie.bot ("the bot") to your Discord server or using its
+By inviting she.listens ("the bot") to your Discord server or using its
 commands, you agree to these terms. If you don't agree, don't use the bot.
 
 ## What the bot does
 
-barbie.bot links a Discord account to a Last.fm username and renders
+she.listens links a Discord account to a Last.fm username and renders
 comparisons of listening stats (now-playing cards, top lists, server
 leaderboards, medals, and ratings) for members of a server. See the
 [README](./README.md) for the full command list and how it works.
@@ -70,5 +70,5 @@ reflected in the "Last updated" date above.
 ## Contact
 
 Questions about these terms:
-[github.com/helj0/barbie.bot](https://github.com/helj0/barbie.bot) — open
+[github.com/helj0/she.listens](https://github.com/helj0/she.listens) — open
 an issue.
