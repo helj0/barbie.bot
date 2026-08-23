@@ -110,6 +110,14 @@ export function unlinkUser(discordId) {
   return result.changes > 0;
 }
 
+/** Removes everything else tied to a Discord ID (medals, ratings, monthly snapshots) - run alongside unlinkUser so /unlink is a clean erasure, not just breaking the account link. */
+export function purgeUserData(discordId) {
+  const medalsDeleted = db.prepare(`DELETE FROM user_medals WHERE discord_id = ?`).run(discordId).changes;
+  const ratingsDeleted = db.prepare(`DELETE FROM ratings WHERE discord_id = ?`).run(discordId).changes;
+  db.prepare(`DELETE FROM monthly_snapshot WHERE discord_id = ?`).run(discordId);
+  return { medalsDeleted, ratingsDeleted };
+}
+
 export function getUser(discordId) {
   return db.prepare(`SELECT * FROM users WHERE discord_id = ?`).get(discordId);
 }

@@ -72,11 +72,10 @@ hosting.
 
 ## How to remove your data
 
-Run `/unlink` to remove your account link (Discord ID ↔ Last.fm username)
-immediately. Medals and ratings tied to your Discord ID may persist after
-unlinking, since they belong to the server's history rather than the link
-itself — if you'd like those fully erased too, open a request at the
-GitHub repository below and it'll be handled manually.
+Run `/unlink` — it immediately removes your account link (Discord ID ↔
+Last.fm username) *and* erases every medal, rating, and monthly-progress
+record tied to your Discord ID. Nothing is held back or scheduled for
+later deletion.
 
 ## Contact
 
